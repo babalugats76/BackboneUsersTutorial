@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+
+<head>
+    <title>Barebones Tutorial</title>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha/css/bootstrap.min.css" />
+</head>
+
+<body lang="en">
+    <div class="container">
+        <h1>User Manager</h1>
+        <hr>
+        <!-- container for our user list and user forms -->
+        <div class="page">
+        </div>
+    </div>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-alpha1/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.2.3/backbone-min.js"></script>
+    <!-- inline script just for the tutorial; make this modular later -->
+    <script>
+        console.log('declaring Router');
+        var Router = Backbone.Router.extend({
+           routes: {
+               '': 'home'
+           } 
+        });
+        console.log('instantiating router object');
+        var router = new Router();
+        router.on('route:home', function() {
+            console.log('Home route fired and this is the callback for it!');
+        });
+        console.log('Starting bakebone history...so it starts listening to URLs');
+        Backbone.history.start();
+    </script>
+</body>
+
+</html>
