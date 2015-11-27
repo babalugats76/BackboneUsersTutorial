@@ -33,12 +33,14 @@
                             <%= user.escape('firstname') %>
                         </td>
                         <td>
-                            <%= user.escape('lastname') %>
+                            <%- user.get('lastname') %>
                         </td>
                         <td>
                             <%= user.escape('age') %>
                         </td>
-                        <td></td>
+                        <td>
+                            <a href="#/edit/<%= user.id %>" class="btn btn-primary">Edit</a>
+                        </td>
                     </tr>
                     <% }); %>
             </tbody>
@@ -47,21 +49,25 @@
 
     <script type="text/template" id="edit-user-template">
         <form class="edit-user-form form-horizontal" role="form">
-            <legend>Create User</legend>
+            <legend>
+                <%= user ? 'Update' : 'Create' %> User</legend>
             <div class="form-group">
                 <label for="firstname" class="col-sm-2">First Name</label>
-                <input type="text" name="firstname" />
+                <input type="text" name="firstname" value="<%= user ? user.escape('firstname') : '' %>" />
             </div>
             <div class="form-group">
                 <label for="lastname" class="col-sm-2">Last Name</label>
-                <input type="text" name="lastname" />
+                <input type="text" name="lastname" value="<%= user ? user.escape('lastname') : '' %>" />
             </div>
             <div class="form-group">
                 <label for="age" class="col-sm-2">Age</label>
-                <input type="text" name="age" />
+                <input type="text" name="age" value="<%= user ? user.escape('age') : '' %>" />
             </div>
-            <hr />
-            <button type="submit" class="btn btn-primary">Create</button>
+            <button type="submit" class="btn btn-primary"><%= user ? 'Update' : 'Create' %></button>
+            <% if(user) { %>
+                <input type="hidden" name="id" value="<%= user.id %>" />
+                <button type="submit" class="btn btn-danger delete">Delete</button>
+            <% }; %>
         </form>
     </script>
 
@@ -70,14 +76,30 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.2.3/backbone-min.js"></script>
     <!-- inline script just for the tutorial; make this modular later -->
     <script>
+        $.fn.serializeObject = function() {
+            var o = {};
+            var a = this.serializeArray();
+            $.each(a, function() {
+                if (o[this.name] !== undefined) {
+                    if (!o[this.name].push) {
+                        o[this.name] = [o[this.name]];
+                    }
+                    o[this.name].push(this.value || '');
+                } else {
+                    o[this.name] = this.value || '';
+                }
+            });
+            return o;
+        };
+
         /* declare the collection and its source */
         var Users = Backbone.Collection.extend({
             url: 'http://backbone-beginner.herokuapp.com/users/'
         });
 
-        /*var User = Backbone.model.extend({
-           url: 'http://backbone-beginner-herokuapp.com/user/:id'; 
-        });*/
+        var User = Backbone.Model.extend({
+            urlRoot: 'http://backbone-beginner.herokuapp.com/users/'
+        });
 
         /* declare the user list view, the element that will house it, and the render function */
         var UserList = Backbone.View.extend({
@@ -98,10 +120,50 @@
 
         var EditUser = Backbone.View.extend({
             el: '.page',
-            render: function() {
+            render: function(options) {
                 var that = this;
-                var template = _.template($('#edit-user-template').html());
-                that.$el.html(template({}));
+                if (options.id) {
+                    that.user = new User({
+                        id: options.id
+                    });
+                    that.user.fetch({
+                        success: function(user) {
+                            var template = _.template($('#edit-user-template').html());
+                            that.$el.html(template({
+                                user: user
+                            }));
+                        }
+                    });
+                } else {
+                    var template = _.template($('#edit-user-template').html());
+                    that.$el.html(template({
+                        user: null
+                    }));
+                }
+
+            },
+            events: {
+                'submit .edit-user-form': 'saveUser',
+                'click .delete': 'deleteUser'
+            },
+            saveUser: function(e) {
+                var userDetails = $(e.currentTarget).serializeObject();
+                var user = new User();
+                user.save(userDetails, {
+                    success: function(user) {
+                        router.navigate('', {trigger: true});
+                    }
+                });
+                return false;
+            },
+            deleteUser: function(e) {
+                this.user.destroy({
+                    success: function() {
+                       console.log('destroy call successful');
+                       router.navigate('', {trigger: true}); 
+                    }
+                })
+                return false;
             }
         });
 
@@ -109,7 +171,8 @@
         var Router = Backbone.Router.extend({
             routes: {
                 '': 'home',
-                'new': 'editUser'
+                'new': 'editUser',
+                'edit/:id': 'editUser'
             }
         });
 
@@ -127,8 +190,10 @@
             userList.render();
         });
 
-        router.on('route:editUser', function() {
-            editUser.render();
+        router.on('route:editUser', function(id) {
+            editUser.render({
+                id: id
+            });
         });
 
         /* have backbone start actively listening for changes in requested URL address */
